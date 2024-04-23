@@ -1,0 +1,17 @@
+#root{
+  margin-top: 70px;
+}
+
+/* Dans votre fichier CSS */
+.card-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* Limite à 3 lignes */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+.small-text {
+  font-size: 0.8rem; /* Réduisez la taille du texte si nécessaire */
+}
