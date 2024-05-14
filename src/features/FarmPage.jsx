@@ -6,6 +6,12 @@ import inspect from 'util-inspect';
 import GrowthInput from './partials/GrowthInput';
 import useFarmData from '../hooks/useFarmData';
 import calculatePastureAverages from '../Services/calculatePastureAverages';
+import { faCalendar } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import ReactDatePicker from 'react-datepicker';
+import { format } from 'date-fns';
+import 'react-datepicker/dist/react-datepicker.css';
+
 
 const FarmPage = ({ }) => {
     const {
@@ -23,6 +29,7 @@ const FarmPage = ({ }) => {
     const { farmID } = useParams();
     const user = JSON.parse(window.sessionStorage.getItem("user"));
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [walkDate, setWalkDate] = useState(null);
 
     const goToNextPaddock = () => {
         if (currentIndex < walksData.length - 1) {
@@ -54,24 +61,26 @@ const FarmPage = ({ }) => {
         }
     };
 
-    const handleAddWalk = (paddockId) => {
-        const paddock = farm.paddocks.find((p) => { return p.paddockid == paddockId });
-        const readingnumMax = readings[0].reduce((acc, r) => r.readingnum > acc ? r.readingnum : acc, 0);
+    const handleAddWalk = () => {
         const newEditingsDatas = { ...editingsDatas };
-        newEditingsDatas.upload.push({
-            farmid: farm.farmid,
-            farmname: farm.farmname,
-            walkorder: paddock.walkorder,
-            paddockid: paddockId,
-            paddockname: paddock.paddockname,
-            cover: 0,
-            totalCover: 0,
-            acceptGrowth: 0,
-            growth: 0,
-            date: new Date().toISOString(),
-            readingnum: (readingnumMax || 0) + 1,
-            area: paddock.effectivearea,
-        });
+        const readingnumMax = readings[0].reduce((acc, r) => r.readingnum > acc ? r.readingnum : acc, 0);
+        farm.paddocks.forEach((paddock => {
+            newEditingsDatas.upload.push({
+                farmid: farm.farmid,
+                farmname: farm.farmname,
+                walkorder: paddock.walkorder,
+                paddockid: paddock.paddockid,
+                paddockname: paddock.paddockname,
+                cover: 0,
+                totalCover: 0,
+                acceptGrowth: 0,
+                growth: 0,
+                date: new Date().toISOString(),
+                readingnum: (readingnumMax || 0) + 1,
+                area: paddock.effectivearea,
+            });
+        }));
+
         setEditingsDatas(newEditingsDatas);
     }
 
@@ -80,6 +89,8 @@ const FarmPage = ({ }) => {
         newEditingsDatas.averages = JSON.stringify(calculatePastureAverages(editingsDatas.upload));
 
         editingsDatas.upload.forEach(item => { if (item.growth == null || isNaN(item.growth) || !isFinite(item.growth)) item.growth = 0; });
+        if (walkDate)
+            editingsDatas.upload.forEach(item => { item.date = walkDate.toISOString(); });
         newEditingsDatas.upload = JSON.stringify(editingsDatas.upload);
         newEditingsDatas.password = user.password;
         const headers = {
@@ -162,8 +173,16 @@ const FarmPage = ({ }) => {
                 <h2 className='mt-3'>Paddocks</h2>
                 <div className='d-flex flex-column mb-2'>
                     <div className='d-flex flex-fill'>
-                        <Button className='btn-sm btn-danger' onClick={() => { dropCurrentEditing() }}>Drop current editing</Button>
-                        <Button className='btn-sm btn-success ms-auto' onClick={() => { handleSaveWalk() }}>Save Walks</Button>
+                        <Button className='btn-sm btn-danger' onClick={() => { dropCurrentEditing() }}>Delete current walk</Button>
+                        <div className='ms-auto'>
+                            <ReactDatePicker
+                                withPortal
+                                selected={walkDate ? walkDate : new Date()}
+                                onChange={(date) => setWalkDate(date)}
+                                customInput={<Button className='btn-sm btn-secondary ms-auto'><FontAwesomeIcon icon={faCalendar} /> {walkDate ? format(walkDate, 'dd/MM/yyyy') : "Today"}</Button>}
+                            />
+                            <Button className='btn-sm btn-success ms-auto' onClick={() => { handleSaveWalk() }}>Save Walks</Button>
+                        </div>
                     </div>
                     <div className='d-flex flex-fill mt-2 m-sm-auto'>
                         <Button className='btn-sm flex-fill' onClick={goToPreviousPaddock} disabled={currentIndex === 0}>« Previous</Button>
@@ -189,7 +208,7 @@ const FarmPage = ({ }) => {
                                                     walksData[currentIndex].currentWalk ?
                                                         <></>
                                                         :
-                                                        <Button className='btn-sm' onClick={() => { handleAddWalk(walksData[currentIndex].paddockId) }}>Start New Walk</Button>
+                                                        <Button className='btn-sm' onClick={() => { handleAddWalk() }}>Start New Walk</Button>
                                                 }
                                             </div>
                                         </CardHeader>
