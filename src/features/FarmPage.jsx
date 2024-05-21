@@ -43,7 +43,7 @@ const FarmPage = ({ }) => {
             setTimeout(() => {
                 setCurrentIndex(currentIndex + 1);
                 setAnimating(false);
-            }, 100);
+            }, 10);
         }
     };
 
@@ -54,7 +54,7 @@ const FarmPage = ({ }) => {
             setTimeout(() => {
                 setCurrentIndex(currentIndex - 1);
                 setAnimating(false);
-            }, 100);
+            }, 10);
         }
     };
 
