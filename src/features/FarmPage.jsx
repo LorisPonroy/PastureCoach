@@ -10,8 +10,10 @@ import { faCalendar } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ReactDatePicker from 'react-datepicker';
 import { format } from 'date-fns';
+import { useSwipeable } from 'react-swipeable';
 import 'react-datepicker/dist/react-datepicker.css';
-
+import { CSSTransition, SwitchTransition } from 'react-transition-group';
+import './FarmPage.css';
 
 const FarmPage = ({ }) => {
     const {
@@ -30,16 +32,29 @@ const FarmPage = ({ }) => {
     const user = JSON.parse(window.sessionStorage.getItem("user"));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [walkDate, setWalkDate] = useState(null);
+    const [direction, setDirection] = useState('next');
+    const [animating, setAnimating] = useState(false);
+
 
     const goToNextPaddock = () => {
         if (currentIndex < walksData.length - 1) {
-            setCurrentIndex(currentIndex + 1);
+            setDirection('next');
+            setAnimating(true);
+            setTimeout(() => {
+                setCurrentIndex(currentIndex + 1);
+                setAnimating(false);
+            }, 100);
         }
     };
 
     const goToPreviousPaddock = () => {
         if (currentIndex > 0) {
-            setCurrentIndex(currentIndex - 1);
+            setDirection('previous');
+            setAnimating(true);
+            setTimeout(() => {
+                setCurrentIndex(currentIndex - 1);
+                setAnimating(false);
+            }, 100);
         }
     };
 
@@ -128,11 +143,18 @@ const FarmPage = ({ }) => {
         }
     }
 
+    const handlers = useSwipeable({
+        onSwipedLeft: () => goToNextPaddock(),
+        onSwipedRight: () => goToPreviousPaddock(),
+        preventDefaultTouchmoveEvent: true,
+        trackMouse: true
+    });
+
     if (!farm || !walksData)
         return <></>
 
     return (
-        <Container>
+        <Container {...handlers}>
             <h1>{farm.farmname}</h1>
             <h2>Calculators</h2>
 
@@ -173,15 +195,18 @@ const FarmPage = ({ }) => {
                 <h2 className='mt-3'>Paddocks</h2>
                 <div className='d-flex flex-column mb-2'>
                     <div className='d-flex flex-fill'>
-                        <Button className='btn-sm btn-danger' onClick={() => { dropCurrentEditing() }}>Delete current walk</Button>
+                        <div>
+                            <Button className='btn-sm btn-danger' onClick={() => { dropCurrentEditing() }}>Delete current walk</Button>
+                        </div>
                         <div className='ms-auto'>
                             <ReactDatePicker
                                 withPortal
                                 selected={walkDate ? walkDate : new Date()}
                                 onChange={(date) => setWalkDate(date)}
                                 customInput={<Button className='btn-sm btn-secondary ms-auto'><FontAwesomeIcon icon={faCalendar} /> {walkDate ? format(walkDate, 'dd/MM/yyyy') : "Today"}</Button>}
+                                minDate={walksData[currentIndex].lastWalk.dateread}
                             />
-                            <Button className='btn-sm btn-success ms-auto' onClick={() => { handleSaveWalk() }}>Save Walks</Button>
+                            <Button className='btn-sm btn-success ms-auto mt-1' onClick={() => { handleSaveWalk() }}>Save Walks</Button>
                         </div>
                     </div>
                     <div className='d-flex flex-fill mt-2 m-sm-auto'>
@@ -191,68 +216,76 @@ const FarmPage = ({ }) => {
                 </div>
 
                 <span style={{ textAlign: 'right', right: 0, display: 'block' }}>Last walks average cover : {Math.floor(averageCover)} </span>
-                <Card className='mb-3'>
-                    <CardHeader className='d-flex justify-content-between align-items-center'>
-                        <b>{walksData[currentIndex].paddockName}</b>
-                        <span>Area :  {farm.paddocks.find((paddock) => paddock.paddockid === walksData[currentIndex].paddockId).effectivearea} ha</span>
-                    </CardHeader>
-                    <CardBody>
-                        <Container>
-                            <Row>
-                                <Col xs={12} md={6} className="mb-2 mb-md-0">
-                                    <Card style={{ flexGrow: 1 }}>
-                                        <CardHeader className={`d-flex justify-content-between align-items-center ${walksData[currentIndex].currentWalk ? 'text-bg-warning' : ''}`}>
-                                            Current
-                                            <div>
-                                                {
-                                                    walksData[currentIndex].currentWalk ?
-                                                        <></>
-                                                        :
-                                                        <Button className='btn-sm' onClick={() => { handleAddWalk() }}>Start New Walk</Button>
-                                                }
-                                            </div>
-                                        </CardHeader>
-                                        <CardBody>
-                                            {
-                                                walksData[currentIndex].currentWalk ? (
+                <SwitchTransition mode="out-in">
+                    <CSSTransition
+                        key={currentIndex}
+                        timeout={300}
+                        classNames={direction === 'next' ? 'slide-next' : 'slide-prev'}
+                    >
+                        <Card className='mb-3'>
+                            <CardHeader className='d-flex justify-content-between align-items-center'>
+                                <b>{walksData[currentIndex].paddockName}</b>
+                                <span>Area :  {farm.paddocks.find((paddock) => paddock.paddockid === walksData[currentIndex].paddockId).effectivearea} ha</span>
+                            </CardHeader>
+                            <CardBody>
+                                <Container>
+                                    <Row>
+                                        <Col xs={12} md={6} className="mb-2 mb-md-0">
+                                            <Card style={{ flexGrow: 1 }}>
+                                                <CardHeader className={`d-flex justify-content-between align-items-center ${walksData[currentIndex].currentWalk ? 'text-bg-warning' : ''}`}>
+                                                    Current
                                                     <div>
-                                                        <span><b>Cover : </b><br className='d-lg-none' /><input type="number" placeholder='KgDM/ha' value={walksData[currentIndex].currentWalk.cover} onChange={(e) => handleWalkChange(walksData[currentIndex].paddockId, 'cover', parseInt(e.target.value))} /></span><br />
-                                                        <span><b>Residual : </b><br className='d-lg-none' /><input type="number" placeholder='KgDM/ha' value={walksData[currentIndex].currentWalk.residual} onChange={(e) => handleWalkChange(walksData[currentIndex].paddockId, 'residual', parseInt(e.target.value))} /></span><br />
-                                                        <GrowthInput
-                                                            currentWalk={walksData[currentIndex].currentWalk}
-                                                            lastWalk={walksData[currentIndex].lastWalk}
-                                                            paddockId={walksData[currentIndex].paddockId}
-                                                            handleWalkChange={handleWalkChange}
-                                                        />
+                                                        {
+                                                            walksData[currentIndex].currentWalk ?
+                                                                <></>
+                                                                :
+                                                                <Button className='btn-sm' onClick={() => { handleAddWalk() }}>Start New Walk</Button>
+                                                        }
                                                     </div>
-                                                ) : (
-                                                    "No data for current walk"
-                                                )
-                                            }
-                                        </CardBody>
-                                    </Card>
-                                </Col>
-                                <Col xs={12} md={6}>
-                                    <Card style={{ flexGrow: 1 }}>
-                                        <CardHeader>Last Walk</CardHeader>
-                                        <CardBody>
-                                            {
-                                                walksData[currentIndex].lastWalk ? (
-                                                    <div>
-                                                        <span>Walk date: {walksData[currentIndex].lastWalk.dateread}</span><br />
-                                                        <span>Cover: {walksData[currentIndex].lastWalk.cover} KgDM/ha</span>
-                                                    </div>
-                                                ) : (
-                                                    "No Data for a last walk"
-                                                )
-                                            }
-                                        </CardBody>
-                                    </Card>
-                                </Col>
-                            </Row>
-                        </Container>
-                    </CardBody>
-                </Card>
+                                                </CardHeader>
+                                                <CardBody>
+                                                    {
+                                                        walksData[currentIndex].currentWalk ? (
+                                                            <div>
+                                                                <span><b>Cover : </b><br className='d-lg-none' /><input type="number" placeholder='KgDM/ha' value={walksData[currentIndex].currentWalk.cover} onChange={(e) => handleWalkChange(walksData[currentIndex].paddockId, 'cover', parseInt(e.target.value))} /></span><br />
+                                                                <span><b>Residual : </b><br className='d-lg-none' /><input type="number" placeholder='KgDM/ha' value={walksData[currentIndex].currentWalk.residual} onChange={(e) => handleWalkChange(walksData[currentIndex].paddockId, 'residual', parseInt(e.target.value))} /></span><br />
+                                                                <GrowthInput
+                                                                    currentWalk={walksData[currentIndex].currentWalk}
+                                                                    lastWalk={walksData[currentIndex].lastWalk}
+                                                                    paddockId={walksData[currentIndex].paddockId}
+                                                                    handleWalkChange={handleWalkChange}
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            "No data for current walk"
+                                                        )
+                                                    }
+                                                </CardBody>
+                                            </Card>
+                                        </Col>
+                                        <Col xs={12} md={6}>
+                                            <Card style={{ flexGrow: 1 }}>
+                                                <CardHeader>Last Walk</CardHeader>
+                                                <CardBody>
+                                                    {
+                                                        walksData[currentIndex].lastWalk ? (
+                                                            <div>
+                                                                <span>Walk date: {walksData[currentIndex].lastWalk.dateread}</span><br />
+                                                                <span>Cover: {walksData[currentIndex].lastWalk.cover} KgDM/ha</span>
+                                                            </div>
+                                                        ) : (
+                                                            "No Data for a last walk"
+                                                        )
+                                                    }
+                                                </CardBody>
+                                            </Card>
+                                        </Col>
+                                    </Row>
+                                </Container>
+                            </CardBody>
+                        </Card>
+                    </CSSTransition>
+                </SwitchTransition>
             </div>
         </Container>
     );
