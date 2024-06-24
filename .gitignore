@@ -29,3 +29,6 @@ node_modules/
 /www/
 /dockerFiles/
 /dockerFiles.zip
+.temp_test_java
+pasture.keystore
+build.json

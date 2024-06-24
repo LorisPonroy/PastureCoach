@@ -1,6 +1,6 @@
 import React from 'react';
 
-function GrowthInput({ currentWalk, lastWalk, paddockId, handleWalkChange }) {
+function GrowthInput({ currentWalk, walkDate, lastWalk, paddockId, handleWalkChange }) {
     let growthIsAcceptable = true;
     let reason = "";
     if(!currentWalk.cover){
@@ -12,11 +12,11 @@ function GrowthInput({ currentWalk, lastWalk, paddockId, handleWalkChange }) {
         reason = "There's no last walk";
     } else {
         const lastWalkDate = new Date(lastWalk.dateread);
-        const daysSinceLastWalk = Math.floor((new Date() - lastWalkDate) / (1000 * 60 * 60 * 24));
+        const daysSinceLastWalk = Math.floor(((walkDate||new Date()) - lastWalkDate) / (1000 * 60 * 60 * 24));
         const growth = Math.floor((currentWalk.cover - lastWalk.cover) / daysSinceLastWalk);
         if (daysSinceLastWalk > 30) {
             growthIsAcceptable = false;
-            reason = "Growth can't be accepted if there's too much time between the last walk and today.";
+            reason = "Growth can't be accepted if there's too much time between the last walk and the walk date.";
         } else if (growth < 0) {
             growthIsAcceptable = false;
             reason = "Negative growth is unacceptable.";

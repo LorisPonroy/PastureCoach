@@ -15,3 +15,17 @@
 .small-text {
   font-size: 0.8rem; /* Réduisez la taille du texte si nécessaire */
 }
+
+html{
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  padding: 0;
+}
+
+body{
+  --bs-body-bg: #ffffe6;
+  background-image: url("../public/logo_backgroundless.png");
+  background-repeat: no-repeat;
+  background-position: bottom;
+}

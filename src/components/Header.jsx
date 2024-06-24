@@ -18,13 +18,13 @@ function Header({ farmID }) {
   const match = useMatch('/farm/:farmID/tools/:tool');
 
   return (
-    <Navbar bg="light" fixed="top" className="fixed-height-navbar custom-navbar">
+    <Navbar style={{backgroundColor:"#fff2cc"}} fixed="top" className="fixed-height-navbar custom-navbar">
       <Container>
         <Navbar.Brand className="mx-auto" style={{ flexGrow: 1 }}>
           {!match ?
             <div onClick={(e) => { e.stopPropagation(); navigate(`/farms`) }} style={{ cursor: 'pointer' }}>
               <img
-                src="/logo.png"
+                src="/logo_backgroundless.png"
                 width="30"
                 height="30"
                 className="d-inline-block align-top"
@@ -42,7 +42,7 @@ function Header({ farmID }) {
 
         <Nav>
           <NavDropdown
-            title={<span><FontAwesomeIcon icon={faUserCircle} /> {user.email}</span>}
+            title={<span style={{fontWeight:'bold'}}><FontAwesomeIcon icon={faUserCircle} /> {user.email}</span>}
           >
             <NavDropdown.Item onClick={() => navigate("/farms")}>My Farms</NavDropdown.Item>
             <NavDropdown.Divider />

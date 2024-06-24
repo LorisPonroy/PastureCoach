@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Row, Col, Card, CardHeader, CardBody, Button } from 'react-bootstrap';
+import { Container, Row, Col, Card, CardHeader, CardBody, Button, Badge } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiCall } from '../Services/apiService';
 import inspect from 'util-inspect';
 import GrowthInput from './partials/GrowthInput';
 import useFarmData from '../hooks/useFarmData';
 import calculatePastureAverages from '../Services/calculatePastureAverages';
-import { faCalendar } from '@fortawesome/free-solid-svg-icons';
+import { faAnglesLeft, faBackward, faCalendar, faForward, faSave, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ReactDatePicker from 'react-datepicker';
 import { format } from 'date-fns';
@@ -32,7 +32,9 @@ const FarmPage = ({ }) => {
     const user = JSON.parse(window.sessionStorage.getItem("user"));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [walkDate, setWalkDate] = useState(null);
+    const [residualDate, setResidualDate] = useState(null);
     const [direction, setDirection] = useState('next');
+    const [inputType, setInputType] = useState('cover');
     const [animating, setAnimating] = useState(false);
 
 
@@ -74,6 +76,7 @@ const FarmPage = ({ }) => {
             setEditingsDatas(newEditingsDatas);
             window.localStorage.setItem('editingsDatas', JSON.stringify(newEditingsDatas));
         }
+
     };
 
     const handleAddWalk = () => {
@@ -104,8 +107,12 @@ const FarmPage = ({ }) => {
         newEditingsDatas.averages = JSON.stringify(calculatePastureAverages(editingsDatas.upload));
 
         editingsDatas.upload.forEach(item => { if (item.growth == null || isNaN(item.growth) || !isFinite(item.growth)) item.growth = 0; });
-        if (walkDate)
+        if (walkDate) {
             editingsDatas.upload.forEach(item => { item.date = walkDate.toISOString(); });
+            if (inputType === 'residual') {
+                editingsDatas.upload.forEach(item => { item.intdateread = walkDate.toISOString(); });
+            }
+        }
         newEditingsDatas.upload = JSON.stringify(editingsDatas.upload);
         newEditingsDatas.password = user.password;
         const headers = {
@@ -114,6 +121,8 @@ const FarmPage = ({ }) => {
         };
         apiCall(newEditingsDatas, headers,
             (responseJson) => {
+                console.log("server says :")
+                console.log(responseJson);
                 if (responseJson.uhoh) {
                     console.log(responseJson.message);
                 } else {
@@ -194,24 +203,70 @@ const FarmPage = ({ }) => {
             <div>
                 <h2 className='mt-3'>Paddocks</h2>
                 <div className='d-flex flex-column mb-2'>
-                    <div className='d-flex flex-fill'>
-                        <div>
-                            <Button className='btn-sm btn-danger' onClick={() => { dropCurrentEditing() }}>Delete current walk</Button>
+                    {walksData[currentIndex].currentWalk ?
+                        <div className='d-flex flex-fill'>
+                            <div className='ms-1 d-flex flex-column'>
+                                <Button className='btn-sm btn-danger' onClick={() => { dropCurrentEditing() }}><FontAwesomeIcon icon={faTrash} /> Cancel walk</Button>
+                                <Button className='btn-sm btn-success mt-1' onClick={() => { handleSaveWalk() }}><FontAwesomeIcon icon={faSave} /> Finish Walk</Button>
+                            </div>
+                            <div className='ms-auto'>
+                                <span>Walk Date</span>
+                                <ReactDatePicker
+                                    withPortal
+                                    selected={walkDate ? walkDate : new Date()}
+                                    onChange={(date) => setWalkDate(date)}
+                                    customInput={<Button className='btn-sm btn-secondary ms-auto'><FontAwesomeIcon icon={faCalendar} /> {walkDate ? format(walkDate, 'dd/MM/yyyy') : "Today"}</Button>}
+                                    minDate={(new Date(walksData[currentIndex].lastWalk.dateread)).setDate((new Date(walksData[currentIndex].lastWalk.dateread).getDate() + 1))}
+                                />
+                            </div>
                         </div>
-                        <div className='ms-auto'>
-                            <ReactDatePicker
-                                withPortal
-                                selected={walkDate ? walkDate : new Date()}
-                                onChange={(date) => setWalkDate(date)}
-                                customInput={<Button className='btn-sm btn-secondary ms-auto'><FontAwesomeIcon icon={faCalendar} /> {walkDate ? format(walkDate, 'dd/MM/yyyy') : "Today"}</Button>}
-                                minDate={walksData[currentIndex].lastWalk.dateread}
-                            />
-                            <Button className='btn-sm btn-success ms-auto mt-1' onClick={() => { handleSaveWalk() }}>Save Walks</Button>
+                        :
+                        <div className='d-flex justify-content-around'>
+                            <div className='d-flex flex-column align-items-center'>
+                                <Button className="round-button btn-success" style={{
+                                    width: "20vw",
+                                    height: "20vw",
+                                    borderRadius: "50%",
+                                    padding: "0",
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    border: "none",
+                                }}
+                                    onClick={() => { handleAddWalk() }}>
+                                    <img src="/walk.png" alt="Image" style={{
+                                        maxWidth: "75%",
+                                        maxHeight: "75%",
+                                        display: "block"
+                                    }} />
+                                </Button>
+                                <span>Start pasture walk</span>
+                            </div>
+                            <div className='d-flex flex-column align-items-center'>
+                                <Button className="round-button btn-warning" style={{
+                                    width: "20vw",
+                                    height: "20vw",
+                                    borderRadius: "50%",
+                                    padding: "0",
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    border: "none",
+                                }}
+                                    onClick={() => { setInputType('residual'); handleAddWalk() }}>
+                                    <img src="/walk.png" alt="Image" style={{
+                                        maxWidth: "75%",
+                                        maxHeight: "75%",
+                                        display: "block"
+                                    }} />
+                                </Button>
+                                <span>Start grazing walk</span>
+                            </div>
                         </div>
-                    </div>
+                    }
                     <div className='d-flex flex-fill mt-2 m-sm-auto'>
-                        <Button className='btn-sm flex-fill' onClick={goToPreviousPaddock} disabled={currentIndex === 0}>« Previous</Button>
-                        <Button className='btn-sm flex-fill ms-2' onClick={goToNextPaddock} disabled={currentIndex === walksData.length - 1}>Next »</Button>
+                        <Button className='btn-sm flex-fill' onClick={goToPreviousPaddock} disabled={currentIndex === 0}><FontAwesomeIcon icon={faBackward} /> Previous</Button>
+                        <Button className='btn-sm flex-fill ms-2' onClick={goToNextPaddock} disabled={currentIndex === walksData.length - 1}>Next <FontAwesomeIcon icon={faForward} /></Button>
                     </div>
                 </div>
 
@@ -231,47 +286,78 @@ const FarmPage = ({ }) => {
                                 <Container>
                                     <Row>
                                         <Col xs={12} md={6} className="mb-2 mb-md-0">
-                                            <Card style={{ flexGrow: 1 }}>
-                                                <CardHeader className={`d-flex justify-content-between align-items-center ${walksData[currentIndex].currentWalk ? 'text-bg-warning' : ''}`}>
-                                                    Current
-                                                    <div>
+                                            {walksData[currentIndex].currentWalk &&
+                                                <Card style={{ flexGrow: 1 }}>
+                                                    <CardHeader className={`d-flex justify-content-between align-items-center ${walksData[currentIndex].currentWalk ? 'text-bg-warning' : ''}`}>
+                                                        Current
+                                                    </CardHeader>
+                                                    <CardBody>
                                                         {
-                                                            walksData[currentIndex].currentWalk ?
-                                                                <></>
-                                                                :
-                                                                <Button className='btn-sm' onClick={() => { handleAddWalk() }}>Start New Walk</Button>
+                                                            walksData[currentIndex].currentWalk ? (
+                                                                <div>
+                                                                    <div>
+                                                                        {/*}
+                                                                <div className="form-check form-switch d-flex align-items-center justify-content-center my-1">
+                                                                    <span className="form-check-label me-2">Cover</span>
+                                                                    <input
+                                                                        className="form-check-input mx-2"
+                                                                        type="checkbox"
+                                                                        checked={inputType === 'residual'}
+                                                                        onChange={() => setInputType(inputType === 'cover' ? 'residual' : 'cover')}
+                                                                    />
+                                                                    <span className="form-check-label ms-2">Residual</span>
+                                                                </div>
+                                                                */}
+
+                                                                        {inputType === 'cover' ? (
+                                                                            <>
+                                                                                <span><b>Cover: </b><br className='d-lg-none' /><input type="number" placeholder='KgDM/ha' value={walksData[currentIndex].currentWalk.cover} onChange={(e) => handleWalkChange(walksData[currentIndex].paddockId, 'cover', parseInt(e.target.value))} /></span>
+                                                                                <GrowthInput
+                                                                                    currentWalk={walksData[currentIndex].currentWalk}
+                                                                                    walkDate={walkDate}
+                                                                                    lastWalk={walksData[currentIndex].lastWalk}
+                                                                                    paddockId={walksData[currentIndex].paddockId}
+                                                                                    handleWalkChange={handleWalkChange}
+                                                                                />
+                                                                            </>
+                                                                        ) : (
+                                                                            <div>
+                                                                                <span><b>Residual: </b><br className='d-lg-none' /><input type="number" placeholder='KgDM/ha' value={walksData[currentIndex].currentWalk.intcover} onChange={(e) => handleWalkChange(walksData[currentIndex].paddockId, 'intcover', parseInt(e.target.value))} /></span><br />
+                                                                                {/*<ReactDatePicker
+                                                                                    withPortal
+                                                                                    selected={residualDate ? residualDate : new Date()}
+                                                                                    onChange={(date) => { setResidualDate(date); handleWalkChange(walksData[currentIndex].paddockId, 'intdateread', date); }}
+                                                                                    customInput={<Button className='btn-sm btn-secondary ms-auto'><FontAwesomeIcon icon={faCalendar} /> {residualDate ? format(residualDate, 'dd/MM/yyyy') : "Today"}</Button>}
+                                                                                    minDate={new Date(walksData[currentIndex].lastWalk.dateread)}
+                                                                        />*/}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+
+                                                                </div>
+                                                            ) : (
+                                                                "No data for current walk"
+                                                            )
                                                         }
-                                                    </div>
-                                                </CardHeader>
-                                                <CardBody>
-                                                    {
-                                                        walksData[currentIndex].currentWalk ? (
-                                                            <div>
-                                                                <span><b>Cover : </b><br className='d-lg-none' /><input type="number" placeholder='KgDM/ha' value={walksData[currentIndex].currentWalk.cover} onChange={(e) => handleWalkChange(walksData[currentIndex].paddockId, 'cover', parseInt(e.target.value))} /></span><br />
-                                                                <span><b>Residual : </b><br className='d-lg-none' /><input type="number" placeholder='KgDM/ha' value={walksData[currentIndex].currentWalk.residual} onChange={(e) => handleWalkChange(walksData[currentIndex].paddockId, 'residual', parseInt(e.target.value))} /></span><br />
-                                                                <GrowthInput
-                                                                    currentWalk={walksData[currentIndex].currentWalk}
-                                                                    lastWalk={walksData[currentIndex].lastWalk}
-                                                                    paddockId={walksData[currentIndex].paddockId}
-                                                                    handleWalkChange={handleWalkChange}
-                                                                />
-                                                            </div>
-                                                        ) : (
-                                                            "No data for current walk"
-                                                        )
-                                                    }
-                                                </CardBody>
-                                            </Card>
+                                                    </CardBody>
+                                                </Card>
+                                            }
                                         </Col>
                                         <Col xs={12} md={6}>
                                             <Card style={{ flexGrow: 1 }}>
-                                                <CardHeader>Last Walk</CardHeader>
+                                                <CardHeader className='d-flex justify-content-between align-items-start'>
+                                                    Last Walk
+                                                    <Badge bg='success' className='mb-0'>{walksData[currentIndex].lastWalk.dateread}</Badge>
+                                                </CardHeader>
                                                 <CardBody>
                                                     {
                                                         walksData[currentIndex].lastWalk ? (
                                                             <div>
-                                                                <span>Walk date: {walksData[currentIndex].lastWalk.dateread}</span><br />
-                                                                <span>Cover: {walksData[currentIndex].lastWalk.cover} KgDM/ha</span>
+                                                                <span style={{ fontWeight: "bold", textAlign: 'center', display: 'block' }}>Cover: {walksData[currentIndex].lastWalk.cover} KgDM/ha</span>
+                                                                {
+                                                                    walksData[currentIndex].lastWalk.acceptGrowth &&
+                                                                    <><br /><span style={{ fontWeight: "bold", textAlign: 'center', display: 'block' }}>Cover: {walksData[currentIndex].lastWalk.growth} KgDM/days</span></>
+                                                                }
                                                             </div>
                                                         ) : (
                                                             "No Data for a last walk"
@@ -287,7 +373,7 @@ const FarmPage = ({ }) => {
                     </CSSTransition>
                 </SwitchTransition>
             </div>
-        </Container>
+        </Container >
     );
 };
 

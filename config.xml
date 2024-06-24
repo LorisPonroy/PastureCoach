@@ -1,8 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="io.cordova.hellocordova" version="1.0.0"
+<widget id="com.pasturecoach2" version="1.0.3" android-versionCode="10003"
     xmlns="http://www.w3.org/ns/widgets"
     xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <hook type="before_prepare" src="scripts/prebuild.js" />
     <name>Pasture Coach</name>
     <description>Pasture Coach App</description>
     <author email="support@pasturecoachnz.co.nz" href="https://www.pasturecoachnz.co.nz/">
@@ -12,4 +11,10 @@
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
     <icon src="public/logo.png" />
+    <hook type="before_prepare" src="scripts/prebuild.js" />
+    <platform name="android">
+        <allow-intent href="market:*" />
+        <resource-file src="build.json" target="app/src/main/build.json" />
+        <hook type="after_prepare" src="scripts/modify_android_manifest.js" />
+    </platform>
 </widget>
